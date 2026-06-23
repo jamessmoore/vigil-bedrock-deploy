@@ -130,8 +130,8 @@ Create and push the tag this deploy builds from (don't use a moving branch):
 
 ```bash
 # in your jamessmoore/vigil fork
-git tag -a v1.0.0-bedrock-deploy -m "Pinned ref for vigil-bedrock-deploy" <commit-sha>
-git push origin v1.0.0-bedrock-deploy
+git tag -a v1.0.1-bedrock-deploy -m "Pinned ref for vigil-bedrock-deploy" <commit-sha>
+git push origin v1.0.1-bedrock-deploy
 ```
 
 ### 1. Enable Bedrock model access (one-time, per region)
@@ -209,7 +209,7 @@ In the GitHub repo settings:
 ### 6. Build & push images, then deploy
 
 - Run the **build-and-push** workflow (manual dispatch, default ref
-  `v1.0.0-bedrock-deploy`). It clones the pinned fork ref, builds both images
+  `v1.0.1-bedrock-deploy`). It clones the pinned fork ref, builds both images
   from Vigil's unmodified Dockerfiles, and pushes them to ECR tagged with the
   ref.
 - Run the **deploy** workflow. It applies Terraform and forces a rolling

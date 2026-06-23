@@ -10,7 +10,7 @@ on:
       vigil_ref:
         description: "Pinned Vigil fork ref to build (tag or SHA)."
         required: true
-        default: "v1.0.0-bedrock-deploy"
+        default: "v1.0.1-bedrock-deploy"
   push:
     branches: [master]
     paths:
@@ -23,7 +23,7 @@ permissions:
 env:
   AWS_REGION: us-west-2
   VIGIL_FORK: https://github.com/jamessmoore/vigil.git
-  VIGIL_REF: ${{ github.event.inputs.vigil_ref || 'v1.0.0-bedrock-deploy' }}
+  VIGIL_REF: ${{ github.event.inputs.vigil_ref || 'v1.0.1-bedrock-deploy' }}
 
 jobs:
   build:
