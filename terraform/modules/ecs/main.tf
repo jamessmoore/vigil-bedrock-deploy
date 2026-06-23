@@ -108,11 +108,13 @@ resource "aws_ecs_task_definition" "backend" {
   task_role_arn            = aws_iam_role.backend_task.arn
 
   # The backend writes to ./logs at startup, but it runs as the non-root
-  # `vigil` user (uid 1000) and /app is root-owned, so the mkdir fails. The
-  # Helm chart solves this with fsGroup:1000 on a mounted logs volume; Fargate
-  # has no fsGroup, so a tiny root init container chowns an ephemeral volume to
-  # 1000 before the backend mounts it at /app/logs — keeping the backend
-  # non-root. (/app/data is already chowned to vigil in the image.)
+  # `vigil` system user and /app is root-owned, so the writes fail. The Helm
+  # chart solves this with fsGroup on a mounted logs volume; Fargate has no
+  # fsGroup, so a tiny root init container makes an ephemeral volume writable
+  # before the backend mounts it at /app/logs. `vigil` is created with
+  # `useradd -r` (auto-assigned system uid, not 1000), so we chmod 0777 rather
+  # than chown a guessed uid. (/app/data is already chowned to vigil in the
+  # image.)
   volume {
     name = "backend-logs"
   }
@@ -122,7 +124,7 @@ resource "aws_ecs_task_definition" "backend" {
       name      = "logs-init"
       image     = var.config_init_image
       essential = false
-      command   = ["sh", "-c", "chown -R 1000:1000 /seedlogs"]
+      command   = ["sh", "-c", "chmod -R 0777 /seedlogs"]
       mountPoints = [
         { sourceVolume = "backend-logs", containerPath = "/seedlogs", readOnly = false }
       ]
