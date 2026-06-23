@@ -22,7 +22,7 @@ permissions:
   contents: read
 
 env:
-  AWS_REGION: us-east-1
+  AWS_REGION: us-west-2
   TF_DIR: terraform/environments/prod
 
 jobs:
