@@ -41,9 +41,14 @@ jobs:
 
       # Clone the pinned Vigil fork ref into a build context. This repo does NOT
       # vendor Vigil source — it builds the existing Dockerfiles unmodified.
+      # Vigil vendors deeptempo-core / mcp-servers / mempalace as git submodules
+      # (all public), and its Dockerfiles COPY + pip install those paths, so the
+      # clone must recurse submodules or the image build fails with
+      # "Directory './deeptempo-core' is not installable".
       - name: Checkout pinned Vigil fork ref
         run: |
-          git clone --depth 1 --branch "${VIGIL_REF}" "${VIGIL_FORK}" vigil-src
+          git clone --depth 1 --recurse-submodules --shallow-submodules \
+            --branch "${VIGIL_REF}" "${VIGIL_FORK}" vigil-src
           echo "Built from ref: ${VIGIL_REF}"
 
       - name: Build & push backend image
