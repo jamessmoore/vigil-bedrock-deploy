@@ -1,0 +1,70 @@
+name: build-and-push
+
+# Builds Vigil's two Docker images from a PINNED ref of the fork and pushes
+# them to ECR, tagged with that ref (never :latest). Auth is GitHub OIDC →
+# AWS IAM role assumption; no long-lived AWS keys are stored as repo secrets.
+
+on:
+  workflow_dispatch:
+    inputs:
+      vigil_ref:
+        description: "Pinned Vigil fork ref to build (tag or SHA)."
+        required: true
+        default: "v1.0.0-bedrock-deploy"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-and-push.yml"
+
+permissions:
+  id-token: write   # required for OIDC
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  VIGIL_FORK: https://github.com/jamessmoore/vigil.git
+  VIGIL_REF: ${{ github.event.inputs.vigil_ref || 'v1.0.0-bedrock-deploy' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Clone the pinned Vigil fork ref into a build context. This repo does NOT
+      # vendor Vigil source — it builds the existing Dockerfiles unmodified.
+      - name: Checkout pinned Vigil fork ref
+        run: |
+          git clone --depth 1 --branch "${VIGIL_REF}" "${VIGIL_FORK}" vigil-src
+          echo "Built from ref: ${VIGIL_REF}"
+
+      - name: Build & push backend image
+        working-directory: vigil-src
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          IMAGE="${REGISTRY}/vigil-backend:${VIGIL_REF}"
+          docker build -f docker/Dockerfile.backend -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Build & push daemon image
+        working-directory: vigil-src
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          IMAGE="${REGISTRY}/vigil-daemon:${VIGIL_REF}"
+          docker build -f docker/Dockerfile.daemon -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Summary
+        run: |
+          echo "Pushed vigil-backend:${VIGIL_REF} and vigil-daemon:${VIGIL_REF} to ECR." >> "$GITHUB_STEP_SUMMARY"
+          echo "Next: run the deploy workflow to roll the ECS services onto this tag." >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,36 @@
+# Copy to terraform.tfvars (gitignored) and fill in real values.
+# NEVER commit terraform.tfvars.
+
+aws_region   = "us-east-1"
+project_name = "vigil"
+
+# DNS — delegated subdomain (apex stays at your external host).
+subdomain         = "vigil.webtechhq.com"
+webhook_subdomain = "hooks.vigil.webtechhq.com"
+
+# Pinned Vigil fork ref CI builds and tags images with.
+vigil_image_tag = "v1.0.0-bedrock-deploy"
+
+# GitHub repo CI runs from (drives the OIDC trust policy).
+github_owner = "jamessmoore"
+github_repo  = "vigil-bedrock-deploy"
+
+# Bedrock — confirm the real inference-profile ID and ARNs for your region:
+#   aws bedrock list-inference-profiles --region us-east-1 \
+#     --query "inferenceProfileSummaries[?contains(inferenceProfileName,'Sonnet 4.6')]"
+bedrock_sonnet_model_id = "us.anthropic.claude-sonnet-4-6-YYYYMMDD-v1:0"
+
+bedrock_invoke_resource_arns = [
+  "arn:aws:bedrock:us-east-1:111122223333:inference-profile/us.anthropic.claude-sonnet-4-6-YYYYMMDD-v1:0",
+  "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-sonnet-4-6-YYYYMMDD-v1:0",
+  "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-sonnet-4-6-YYYYMMDD-v1:0",
+  "arn:aws:bedrock:us-east-2::foundation-model/anthropic.claude-sonnet-4-6-YYYYMMDD-v1:0",
+]
+
+# Bifrost fallback-provider keys — real values here, never committed.
+anthropic_api_key = "sk-ant-..."
+openai_api_key    = "sk-..."
+
+# Cost / HA toggles.
+desired_count = 1
+rds_multi_az  = false

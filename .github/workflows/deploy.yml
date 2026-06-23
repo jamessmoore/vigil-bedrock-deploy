@@ -1,0 +1,76 @@
+name: deploy
+
+# Applies the Terraform (which pins the ECS task definitions to the image tag)
+# and forces a new deployment so the services pull the freshly built images.
+# OIDC role assumption — no static AWS keys.
+#
+# Two-phase by design: build-and-push.yml puts images in ECR first, then this
+# workflow points the services at them. `terraform apply` is the source of
+# truth; we add an explicit force-new-deployment so a same-tag image rebuild
+# still rolls the services.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "terraform/**"
+      - "bifrost/**"
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  TF_DIR: terraform/environments/prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.0"
+
+      # Secrets and Bedrock ARNs are passed as TF_VAR_* from GitHub secrets so
+      # nothing sensitive is committed. The S3 backend is configured via repo
+      # vars (bucket/key/region).
+      - name: Terraform Init
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="key=vigil-bedrock-deploy/prod/terraform.tfstate" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="encrypt=true" \
+            -backend-config="use_lockfile=true"
+
+      - name: Terraform Apply
+        working-directory: ${{ env.TF_DIR }}
+        env:
+          TF_VAR_anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_bedrock_sonnet_model_id: ${{ vars.BEDROCK_SONNET_MODEL_ID }}
+          TF_VAR_bedrock_invoke_resource_arns: ${{ vars.BEDROCK_INVOKE_RESOURCE_ARNS }}
+        run: terraform apply -auto-approve -input=false
+
+      # Force a rolling restart so services pick up a rebuilt image under the
+      # same tag (Terraform alone won't change the task def if only the image
+      # contents changed).
+      - name: Force new ECS deployments
+        run: |
+          CLUSTER="$(terraform -chdir=${{ env.TF_DIR }} output -raw ecs_cluster_name)"
+          for svc in backend soc-daemon llm-worker bifrost; do
+            aws ecs update-service --cluster "$CLUSTER" --service "$svc" \
+              --force-new-deployment --region "$AWS_REGION" >/dev/null
+            echo "Rolled $svc"
+          done
