@@ -69,6 +69,9 @@ data "aws_iam_policy_document" "infra" {
     sid    = "Ec2Networking"
     effect = "Allow"
     actions = [
+      # All EC2 reads (DescribeAddressesAttribute, etc.) — read-only, so a
+      # wildcard here is low-risk; write actions below stay explicit.
+      "ec2:Describe*",
       "ec2:CreateVpc", "ec2:DeleteVpc", "ec2:ModifyVpcAttribute",
       "ec2:DescribeVpcs", "ec2:DescribeVpcAttribute",
       "ec2:CreateSubnet", "ec2:DeleteSubnet", "ec2:ModifySubnetAttribute", "ec2:DescribeSubnets",
@@ -160,6 +163,15 @@ data "aws_iam_policy_document" "iam_state" {
     resources = [local.oidc_arn]
   }
 
+  # ListOpenIDConnectProviders has no resource-level scoping; the data source
+  # that resolves the shared GitHub provider by URL needs it.
+  statement {
+    sid       = "ListOidcProviders"
+    effect    = "Allow"
+    actions   = ["iam:ListOpenIDConnectProviders"]
+    resources = ["*"]
+  }
+
   # ECS/RDS/ElastiCache may need their service-linked roles to exist; allow
   # creating them only for those services (no-op if already present).
   statement {
@@ -197,6 +209,28 @@ data "aws_iam_policy_document" "iam_state" {
     effect    = "Allow"
     actions   = ["secretsmanager:GetRandomPassword"]
     resources = ["*"]
+  }
+
+  # RDS storage encryption + managed master password require the creating
+  # principal to grant/describe the KMS keys RDS and Secrets Manager use.
+  # Scoped via kms:ViaService to those two services only.
+  statement {
+    sid    = "KmsForRdsAndSecrets"
+    effect = "Allow"
+    actions = [
+      "kms:DescribeKey", "kms:CreateGrant", "kms:RetireGrant",
+      "kms:Decrypt", "kms:GenerateDataKey", "kms:GenerateDataKeyWithoutPlaintext",
+      "kms:ReEncryptFrom", "kms:ReEncryptTo",
+    ]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values = [
+        "rds.${var.aws_region}.amazonaws.com",
+        "secretsmanager.${var.aws_region}.amazonaws.com",
+      ]
+    }
   }
 
   statement {

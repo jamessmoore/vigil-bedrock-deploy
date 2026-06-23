@@ -32,7 +32,7 @@ variable "db_username" {
 variable "db_engine_version" {
   description = "Confirm the latest available 16.x minor via `aws rds describe-db-engine-versions --engine postgres --query \"DBEngineVersions[?starts_with(EngineVersion,'16.')].EngineVersion\"` before first apply — minor versions are periodically deprecated by AWS."
   type        = string
-  default     = "16.4"
+  default     = "16.10"
 }
 
 variable "db_instance_class" {

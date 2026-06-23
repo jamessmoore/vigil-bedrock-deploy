@@ -106,7 +106,7 @@ resource "aws_route_table_association" "private" {
 
 resource "aws_security_group" "alb" {
   name        = "${var.project_name}-alb"
-  description = "Public ALB: vigil.<domain> and hooks.vigil.<domain>"
+  description = "Public ALB for the vigil and hooks.vigil hostnames"
   vpc_id      = aws_vpc.main.id
   tags        = merge(var.tags, { Name = "${var.project_name}-alb-sg" })
 }
@@ -204,7 +204,7 @@ resource "aws_vpc_security_group_egress_rule" "alb_to_soc_daemon_health" {
 
 resource "aws_vpc_security_group_ingress_rule" "backend_from_alb" {
   security_group_id            = aws_security_group.backend.id
-  description                  = "ALB -> backend"
+  description                  = "ALB to backend"
   referenced_security_group_id = aws_security_group.alb.id
   from_port                    = 6987
   to_port                      = 6987
@@ -248,7 +248,7 @@ resource "aws_vpc_security_group_egress_rule" "backend_https_egress" {
 
 resource "aws_vpc_security_group_ingress_rule" "soc_daemon_webhook_from_alb" {
   security_group_id            = aws_security_group.soc_daemon.id
-  description                  = "ALB -> soc-daemon webhook ingestion"
+  description                  = "ALB to soc-daemon webhook ingestion"
   referenced_security_group_id = aws_security_group.alb.id
   from_port                    = 8081
   to_port                      = 8081
