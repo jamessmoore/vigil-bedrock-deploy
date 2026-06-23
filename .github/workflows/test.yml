@@ -20,8 +20,14 @@ jobs:
       - name: Terraform fmt check
         run: terraform fmt -check -recursive terraform
 
-      - name: Terraform validate
+      - name: Terraform validate (prod)
         working-directory: terraform/environments/prod
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: Terraform validate (bootstrap)
+        working-directory: terraform/bootstrap
         run: |
           terraform init -backend=false
           terraform validate
