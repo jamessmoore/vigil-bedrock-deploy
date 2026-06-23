@@ -30,7 +30,7 @@ Success; ~45 resources across 5 modules). **No real deploy has been run yet** â€
 the AWS resources do not exist, and the following remain to be supplied before a
 first `apply`:
 
-- The pinned Vigil fork tag (`v1.0.0-bedrock-deploy`) must be created/pushed on
+- The pinned Vigil fork tag (`v1.0.1-bedrock-deploy`) must be created/pushed on
   the fork before CI can build images from it.
 - `bedrock_sonnet_model_id` and `bedrock_invoke_resource_arns` must be filled
   with the **real** Bedrock inference-profile ID + ARNs for the target region â€”

@@ -25,9 +25,9 @@ variable "webhook_subdomain" {
 
 # --- Container images / CI ---
 variable "vigil_image_tag" {
-  description = "Image tag pushed by CI — the pinned Vigil fork ref (e.g. v1.0.0-bedrock-deploy)."
+  description = "Image tag pushed by CI — the pinned Vigil fork ref (e.g. v1.0.1-bedrock-deploy)."
   type        = string
-  default     = "v1.0.0-bedrock-deploy"
+  default     = "v1.0.1-bedrock-deploy"
 }
 
 variable "bifrost_image" {

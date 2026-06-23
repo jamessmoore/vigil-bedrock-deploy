@@ -9,7 +9,7 @@ subdomain         = "vigil.webtechhq.com"
 webhook_subdomain = "hooks.vigil.webtechhq.com"
 
 # Pinned Vigil fork ref CI builds and tags images with.
-vigil_image_tag = "v1.0.0-bedrock-deploy"
+vigil_image_tag = "v1.0.1-bedrock-deploy"
 
 # GitHub repo CI runs from (drives the OIDC trust policy).
 github_owner = "jamessmoore"
