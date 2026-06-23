@@ -37,6 +37,7 @@ data "aws_iam_policy_document" "execution_secrets" {
       var.db_master_secret_arn,
       var.anthropic_secret_arn,
       var.openai_secret_arn,
+      var.jwt_secret_arn,
     ]
   }
 }

@@ -212,6 +212,7 @@ module "ecs" {
 
   anthropic_secret_arn = module.data.anthropic_secret_arn
   openai_secret_arn    = module.data.openai_secret_arn
+  jwt_secret_arn       = module.data.jwt_secret_arn
 
   bedrock_sonnet_model_id      = var.bedrock_sonnet_model_id
   bedrock_invoke_resource_arns = var.bedrock_invoke_resource_arns

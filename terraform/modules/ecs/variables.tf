@@ -84,6 +84,11 @@ variable "openai_secret_arn" {
   type = string
 }
 
+variable "jwt_secret_arn" {
+  description = "Secrets Manager ARN of the backend JWT signing key."
+  type        = string
+}
+
 # --- Bedrock model targeting (the project's thesis) ---
 variable "bedrock_sonnet_model_id" {
   description = <<-EOT
