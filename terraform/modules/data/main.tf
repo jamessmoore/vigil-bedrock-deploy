@@ -78,3 +78,20 @@ resource "aws_secretsmanager_secret_version" "openai_api_key" {
   secret_id     = aws_secretsmanager_secret.openai_api_key.id
   secret_string = var.openai_api_key
 }
+
+# Backend JWT signing secret — generated, never supplied by hand. The backend
+# requires JWT_SECRET_KEY when DEV_MODE=false.
+resource "random_password" "jwt_secret" {
+  length  = 64
+  special = false
+}
+
+resource "aws_secretsmanager_secret" "jwt_secret" {
+  name = "${var.project_name}/backend/jwt-secret-key"
+  tags = var.tags
+}
+
+resource "aws_secretsmanager_secret_version" "jwt_secret" {
+  secret_id     = aws_secretsmanager_secret.jwt_secret.id
+  secret_string = random_password.jwt_secret.result
+}

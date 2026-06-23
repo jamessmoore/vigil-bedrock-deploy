@@ -113,8 +113,14 @@ resource "aws_ecs_task_definition" "backend" {
       image        = var.backend_image
       essential    = true
       portMappings = [{ containerPort = 6987, protocol = "tcp" }]
-      environment  = local.app_common_env
-      secrets      = local.db_password_secret
+      # DEV_MODE=false runs the backend in production mode, which requires a
+      # JWT signing key (injected from Secrets Manager).
+      environment = concat(local.app_common_env, [
+        { name = "DEV_MODE", value = "false" },
+      ])
+      secrets = concat(local.db_password_secret, [
+        { name = "JWT_SECRET_KEY", valueFrom = var.jwt_secret_arn },
+      ])
       logConfiguration = {
         logDriver = "awslogs"
         options = {
