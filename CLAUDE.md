@@ -122,6 +122,13 @@ bifrost/
   deploy.yml         terraform apply + force ECS redeploy (OIDC).
 ```
 
+## License & contributors
+
+MIT License (`LICENSE`). `CONTRIBUTING.md` and `CONTRIBUTORS.md` document that
+this is a solo project by James Moore with Claude (Anthropic) as an AI
+development collaborator with no commit access or independent decision-making
+authority.
+
 ## Commit messages
 
 Short, imperative, capitalized summary line. No conventional-commit prefixes
