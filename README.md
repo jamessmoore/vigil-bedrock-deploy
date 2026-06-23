@@ -99,10 +99,10 @@ vigil-bedrock-deploy/
 - `AmazonECSTaskExecutionRolePolicy` (managed) — its ECR/CloudWatch-Logs actions
   are inherently `*`. Everything custom (Secrets Manager, Bedrock) is ARN-scoped.
 
-### One intentional deviation from the build prompt
+### A note on where `GetSecretValue` lives
 
-The prompt suggested putting `secretsmanager:GetSecretValue` on the **Bifrost
-task role**. ECS-native secret injection is performed by the **execution role**,
+A natural first instinct is to put `secretsmanager:GetSecretValue` on the
+**Bifrost task role**. ECS-native secret injection is performed by the **execution role**,
 not the task role — so the scoped `GetSecretValue` (DB master + Anthropic +
 OpenAI secrets) lives on the shared execution role, and the Bifrost **task**
 role carries only the scoped Bedrock `InvokeModel*` permissions it actually uses
