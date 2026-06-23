@@ -107,12 +107,43 @@ resource "aws_ecs_task_definition" "backend" {
   execution_role_arn       = aws_iam_role.execution.arn
   task_role_arn            = aws_iam_role.backend_task.arn
 
+  # The backend writes to ./logs at startup, but it runs as the non-root
+  # `vigil` user (uid 1000) and /app is root-owned, so the mkdir fails. The
+  # Helm chart solves this with fsGroup:1000 on a mounted logs volume; Fargate
+  # has no fsGroup, so a tiny root init container chowns an ephemeral volume to
+  # 1000 before the backend mounts it at /app/logs — keeping the backend
+  # non-root. (/app/data is already chowned to vigil in the image.)
+  volume {
+    name = "backend-logs"
+  }
+
   container_definitions = jsonencode([
+    {
+      name      = "logs-init"
+      image     = var.config_init_image
+      essential = false
+      command   = ["sh", "-c", "chown -R 1000:1000 /seedlogs"]
+      mountPoints = [
+        { sourceVolume = "backend-logs", containerPath = "/seedlogs", readOnly = false }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.backend.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "logs-init"
+        }
+      }
+    },
     {
       name         = "backend"
       image        = var.backend_image
       essential    = true
+      dependsOn    = [{ containerName = "logs-init", condition = "SUCCESS" }]
       portMappings = [{ containerPort = 6987, protocol = "tcp" }]
+      mountPoints = [
+        { sourceVolume = "backend-logs", containerPath = "/app/logs", readOnly = false }
+      ]
       # DEV_MODE=false runs the backend in production mode, which requires a
       # JWT signing key (injected from Secrets Manager).
       environment = concat(local.app_common_env, [
