@@ -29,15 +29,13 @@ resource "aws_ecr_repository" "daemon" {
 
 # ---------------------------------------------------------------------------
 # GitHub OIDC — lets CI assume an AWS role with no long-lived access keys.
-# Mirrors the daily-tech-brief-bedrock pattern.
+# The provider is account-wide and shared across repos (CoreSample,
+# daily-tech-brief-bedrock, etc. already created it), so we reference the
+# existing one rather than creating a second — IAM allows only one OIDC
+# provider per URL per account.
 # ---------------------------------------------------------------------------
-resource "aws_iam_openid_connect_provider" "github" {
-  url            = "https://token.actions.githubusercontent.com"
-  client_id_list = ["sts.amazonaws.com"]
-  # GitHub's OIDC thumbprint; AWS validates the cert chain so this is no longer
-  # security-critical, but the argument is still required.
-  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
-  tags            = local.tags
+data "aws_iam_openid_connect_provider" "github" {
+  url = "https://token.actions.githubusercontent.com"
 }
 
 data "aws_iam_policy_document" "github_assume" {
@@ -46,7 +44,7 @@ data "aws_iam_policy_document" "github_assume" {
     effect  = "Allow"
     principals {
       type        = "Federated"
-      identifiers = [aws_iam_openid_connect_provider.github.arn]
+      identifiers = [data.aws_iam_openid_connect_provider.github.arn]
     }
     condition {
       test     = "StringEquals"
