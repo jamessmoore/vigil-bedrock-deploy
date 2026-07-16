@@ -37,9 +37,10 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - uses: hashicorp/setup-terraform@v3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@v1
         with:
-          terraform_version: "1.10.0"
+          tofu_version: "1.12.1"
 
       # Secrets and Bedrock ARNs are passed as TF_VAR_* from GitHub secrets so
       # nothing sensitive is committed. The S3 backend is configured via repo
@@ -47,7 +48,7 @@ jobs:
       - name: Terraform Init
         working-directory: ${{ env.TF_DIR }}
         run: |
-          terraform init \
+          tofu init \
             -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
             -backend-config="key=vigil-bedrock-deploy/prod/terraform.tfstate" \
             -backend-config="region=${{ env.AWS_REGION }}" \
@@ -61,14 +62,14 @@ jobs:
           TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
           TF_VAR_bedrock_sonnet_model_id: ${{ vars.BEDROCK_SONNET_MODEL_ID }}
           TF_VAR_bedrock_invoke_resource_arns: ${{ vars.BEDROCK_INVOKE_RESOURCE_ARNS }}
-        run: terraform apply -auto-approve -input=false
+        run: tofu apply -auto-approve -input=false
 
       # Force a rolling restart so services pick up a rebuilt image under the
       # same tag (Terraform alone won't change the task def if only the image
       # contents changed).
       - name: Force new ECS deployments
         run: |
-          CLUSTER="$(terraform -chdir=${{ env.TF_DIR }} output -raw ecs_cluster_name)"
+          CLUSTER="$(tofu -chdir=${{ env.TF_DIR }} output -raw ecs_cluster_name)"
           for svc in backend soc-daemon llm-worker bifrost; do
             aws ecs update-service --cluster "$CLUSTER" --service "$svc" \
               --force-new-deployment --region "$AWS_REGION" >/dev/null
